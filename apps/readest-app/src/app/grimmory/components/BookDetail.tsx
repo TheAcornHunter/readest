@@ -15,13 +15,16 @@ interface BookDetailProps {
   onBack: () => void;
 }
 
+// Threshold for displaying a half-star (>=40% of the way to the next full star)
+const HALF_STAR_THRESHOLD = 0.4;
+
 function StarRating({ rating, max = 5 }: { rating: number; max?: number }) {
   const normalized = (rating / max) * 5;
   return (
     <span className='inline-flex items-center gap-0.5'>
       {Array.from({ length: 5 }, (_, i) => {
         const filled = i < Math.floor(normalized);
-        const half = !filled && i < Math.ceil(normalized) && normalized % 1 >= 0.4;
+        const half = !filled && i < Math.ceil(normalized) && normalized % 1 >= HALF_STAR_THRESHOLD;
         return filled ? (
           <IoStar key={i} className='text-yellow-400 h-4 w-4' />
         ) : half ? (

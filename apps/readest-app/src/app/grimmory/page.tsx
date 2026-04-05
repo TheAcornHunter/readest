@@ -50,7 +50,7 @@ function GrimmoryPageContent() {
         setViewMode('libraries');
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally runs on mount only to initialize from URL
   }, []);
 
   const handleSelectServer = (server: GrimmoryServer) => {

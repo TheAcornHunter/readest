@@ -29,12 +29,12 @@ function isUrlSafeToProxy(rawUrl: string): boolean {
   // Block private IPv4 ranges
   const ipv4Match = hostname.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
   if (ipv4Match) {
-    const [, a, b] = ipv4Match.map(Number);
+    const [, firstOctet, secondOctet] = ipv4Match.map(Number);
     if (
-      a === 10 || // 10.x.x.x
-      (a === 172 && b !== undefined && b >= 16 && b <= 31) || // 172.16.x.x – 172.31.x.x
-      (a === 192 && b === 168) || // 192.168.x.x
-      (a === 169 && b === 254) // 169.254.x.x link-local
+      firstOctet === 10 || // 10.x.x.x
+      (firstOctet === 172 && secondOctet !== undefined && secondOctet >= 16 && secondOctet <= 31) || // 172.16.x.x – 172.31.x.x
+      (firstOctet === 192 && secondOctet === 168) || // 192.168.x.x
+      (firstOctet === 169 && secondOctet === 254) // 169.254.x.x link-local
     ) {
       return false;
     }
