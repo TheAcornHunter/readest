@@ -65,7 +65,7 @@ export function GrimmoryServerManager({ onOpenServer }: { onOpenServer?: (server
 
     try {
       const tempServer: GrimmoryServer = {
-        id: Date.now().toString(),
+        id: crypto.randomUUID(),
         name: newServer.name,
         url: newServer.url,
       };

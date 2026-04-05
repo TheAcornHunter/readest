@@ -37,25 +37,17 @@ function GrimmoryPageContent() {
 
   useTheme({ systemUIVisible: false });
 
-  // Initialize from URL params
+  // Initialize from URL params - navigate to server's libraries view
   useEffect(() => {
     const serverId = searchParams?.get('id');
     if (serverId) {
       const servers = settings.grimmory?.servers ?? [];
       const server = servers.find((s) => s.id === serverId);
       if (server) {
-        const libId = searchParams?.get('lib');
-        const bookId = searchParams?.get('book');
-        if (bookId && libId) {
-          setState({ server, library: null, bookId: parseInt(bookId, 10) });
-          setViewMode('bookDetail');
-        } else if (libId) {
-          setState({ server, library: { id: parseInt(libId, 10), name: libId }, bookId: null });
-          setViewMode('books');
-        } else {
-          setState({ server, library: null, bookId: null });
-          setViewMode('libraries');
-        }
+        // When loading from URL, navigate to the libraries view.
+        // Deep-linking to books is handled via the handleSelectLibrary flow.
+        setState({ server, library: null, bookId: null });
+        setViewMode('libraries');
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -110,21 +110,22 @@ export function BookList({ server, libraryId, libraryName, onBack, onSelectBook 
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const fetchBooks = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const client = new GrimmoryClient(server);
+      const data = await client.getBooks(libraryId);
+      setBooks(data);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg || _('Failed to load books.'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchBooks = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const client = new GrimmoryClient(server);
-        const data = await client.getBooks(libraryId);
-        setBooks(data);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        setError(msg || _('Failed to load books.'));
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchBooks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [server, libraryId]);
@@ -181,16 +182,7 @@ export function BookList({ server, libraryId, libraryName, onBack, onSelectBook 
           <div className='flex h-32 flex-col items-center justify-center text-center'>
             <p className='text-error text-sm'>{error}</p>
             <button
-              onClick={() => {
-                setLoading(true);
-                setError(null);
-                const client = new GrimmoryClient(server);
-                client
-                  .getBooks(libraryId)
-                  .then(setBooks)
-                  .catch((e) => setError(e instanceof Error ? e.message : String(e)))
-                  .finally(() => setLoading(false));
-              }}
+              onClick={fetchBooks}
               className='btn btn-ghost btn-sm mt-2'
             >
               {_('Retry')}

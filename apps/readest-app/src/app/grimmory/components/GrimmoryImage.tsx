@@ -21,7 +21,6 @@ interface GrimmoryImageProps {
  */
 export function GrimmoryImage({ src, authHeader, alt, className, onError }: GrimmoryImageProps) {
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
-  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
 
   useEffect(() => {
@@ -83,7 +82,7 @@ export function GrimmoryImage({ src, authHeader, alt, className, onError }: Grim
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src, authHeader]);
 
-  if (error || (!objectUrl && !isWebAppPlatform() && loaded)) {
+  if (error) {
     return null;
   }
 
@@ -96,7 +95,6 @@ export function GrimmoryImage({ src, authHeader, alt, className, onError }: Grim
       src={objectUrl}
       alt={alt}
       className={className}
-      onLoad={() => setLoaded(true)}
       onError={() => {
         setError(true);
         onError?.();
