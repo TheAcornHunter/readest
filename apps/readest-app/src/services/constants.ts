@@ -24,6 +24,7 @@ import {
   ReadwiseSettings,
   SystemSettings,
 } from '@/types/settings';
+import type { GrimmorySettings } from '@/types/grimmory';
 import { UserStorageQuota, UserDailyTranslationQuota } from '@/types/quota';
 import { getDefaultMaxBlockSize, getDefaultMaxInlineSize } from '@/utils/config';
 import { stubTranslation as _ } from '@/utils/misc';
@@ -80,6 +81,10 @@ export const DEFAULT_HARDCOVER_SETTINGS = {
   lastSyncedAt: 0,
 } as HardcoverSettings;
 
+export const DEFAULT_GRIMMORY_SETTINGS: GrimmorySettings = {
+  servers: [],
+};
+
 export const DEFAULT_SYSTEM_SETTINGS: Partial<SystemSettings> = {
   keepLogin: false,
   autoUpload: true,
@@ -111,6 +116,7 @@ export const DEFAULT_SYSTEM_SETTINGS: Partial<SystemSettings> = {
   kosync: DEFAULT_KOSYNC_SETTINGS,
   readwise: DEFAULT_READWISE_SETTINGS,
   hardcover: DEFAULT_HARDCOVER_SETTINGS,
+  grimmory: DEFAULT_GRIMMORY_SETTINGS,
   aiSettings: DEFAULT_AI_SETTINGS,
 
   lastSyncedAtBooks: 0,

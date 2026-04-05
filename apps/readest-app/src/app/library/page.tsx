@@ -58,6 +58,7 @@ import { KeyboardShortcutsHelp } from '@/components/KeyboardShortcutsHelp';
 import { BookDetailModal } from '@/components/metadata';
 import { UpdaterWindow } from '@/components/UpdaterWindow';
 import { CatalogDialog } from './components/OPDSDialog';
+import { GrimmoryDialog } from './components/GrimmoryDialog';
 import { MigrateDataWindow } from './components/MigrateDataWindow';
 import { BackupWindow } from './components/BackupWindow';
 import { useDragDropImport } from './hooks/useDragDropImport';
@@ -113,6 +114,9 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
   const { isTransferQueueOpen } = useTransferStore();
   const [showCatalogManager, setShowCatalogManager] = useState(
     searchParams?.get('opds') === 'true',
+  );
+  const [showGrimmoryManager, setShowGrimmoryManager] = useState(
+    searchParams?.get('grimmory') === 'true',
   );
   const [loading, setLoading] = useState(false);
   const [libraryLoaded, setLibraryLoaded] = useState(false);
@@ -361,6 +365,17 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
     setShowCatalogManager(false);
     const params = new URLSearchParams(searchParams?.toString());
     params.delete('opds');
+    navigateToLibrary(router, `${params.toString()}`);
+  };
+
+  const handleShowGrimmoryDialog = () => {
+    setShowGrimmoryManager(true);
+  };
+
+  const handleDismissGrimmoryDialog = () => {
+    setShowGrimmoryManager(false);
+    const params = new URLSearchParams(searchParams?.toString());
+    params.delete('grimmory');
     navigateToLibrary(router, `${params.toString()}`);
   };
 
@@ -828,6 +843,7 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
             appService?.canReadExternalDir ? handleImportBooksFromDirectory : undefined
           }
           onOpenCatalogManager={handleShowOPDSDialog}
+          onOpenGrimmory={handleShowGrimmoryDialog}
           onToggleSelectMode={() => handleSetSelectMode(!isSelectMode)}
           onSelectAll={handleSelectAll}
           onDeselectAll={handleDeselectAll}
@@ -975,6 +991,7 @@ const LibraryPageContent = ({ searchParams }: { searchParams: ReadonlyURLSearchP
       <BackupWindow onPullLibrary={pullLibrary} />
       {isSettingsDialogOpen && <SettingsDialog bookKey={''} />}
       {showCatalogManager && <CatalogDialog onClose={handleDismissOPDSDialog} />}
+      {showGrimmoryManager && <GrimmoryDialog onClose={handleDismissGrimmoryDialog} />}
       <Toast />
     </div>
   );
