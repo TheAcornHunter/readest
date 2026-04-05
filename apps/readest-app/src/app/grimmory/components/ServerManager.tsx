@@ -93,7 +93,7 @@ export function GrimmoryServerManager({
       if (newServer.username && newServer.password) {
         try {
           const loginResp = await client.login(newServer.username, newServer.password);
-          token = loginResp.token;
+          token = loginResp.accessToken;
           refreshToken = loginResp.refreshToken;
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);

@@ -78,13 +78,12 @@ describe('GrimmoryClient', () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: () =>
-        Promise.resolve({ token: 'new-jwt', refreshToken: 'new-refresh' }),
+      json: () => Promise.resolve({ accessToken: 'new-jwt', refreshToken: 'new-refresh' }),
       text: () => Promise.resolve(''),
     });
 
     const result = await client.login('user', 'pass');
-    expect(result.token).toBe('new-jwt');
+    expect(result.accessToken).toBe('new-jwt');
     expect(result.refreshToken).toBe('new-refresh');
 
     const call = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -102,8 +101,7 @@ describe('GrimmoryClient', () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: () =>
-        Promise.resolve([{ id: 1, name: 'My Library' }]),
+      json: () => Promise.resolve([{ id: 1, name: 'My Library' }]),
       text: () => Promise.resolve(''),
     });
 
@@ -120,8 +118,7 @@ describe('GrimmoryClient', () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: () =>
-        Promise.resolve([{ id: 42, title: 'Test Book' }]),
+      json: () => Promise.resolve([{ id: 42, title: 'Test Book' }]),
       text: () => Promise.resolve(''),
     });
 
@@ -137,8 +134,7 @@ describe('GrimmoryClient', () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: () =>
-        Promise.resolve([{ id: 1, reviewerName: 'Alice', rating: 4.5 }]),
+      json: () => Promise.resolve([{ id: 1, reviewerName: 'Alice', rating: 4.5 }]),
       text: () => Promise.resolve(''),
     });
 
@@ -190,12 +186,12 @@ describe('GrimmoryClient', () => {
       ok: true,
       status: 200,
       json: () =>
-        Promise.resolve({ token: 'refreshed-jwt', refreshToken: 'new-refresh-token' }),
+        Promise.resolve({ accessToken: 'refreshed-jwt', refreshToken: 'new-refresh-token' }),
       text: () => Promise.resolve(''),
     });
 
     const result = await client.refreshToken('old-refresh');
-    expect(result.token).toBe('refreshed-jwt');
+    expect(result.accessToken).toBe('refreshed-jwt');
 
     const call = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(call[0]).toContain('/api/v1/auth/refresh');

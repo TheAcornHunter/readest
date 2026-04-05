@@ -30,7 +30,7 @@ export interface GrimmoryReadProgressRequest {
 }
 
 export interface GrimmoryLoginResponse {
-  token: string;
+  accessToken: string;
   refreshToken: string;
 }
 
