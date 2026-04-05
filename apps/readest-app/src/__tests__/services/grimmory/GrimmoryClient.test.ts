@@ -78,13 +78,12 @@ describe('GrimmoryClient', () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: () =>
-        Promise.resolve({ token: 'new-jwt', refreshToken: 'new-refresh' }),
+      json: () => Promise.resolve({ accessToken: 'new-jwt', refreshToken: 'new-refresh' }),
       text: () => Promise.resolve(''),
     });
 
     const result = await client.login('user', 'pass');
-    expect(result.token).toBe('new-jwt');
+    expect(result.accessToken).toBe('new-jwt');
     expect(result.refreshToken).toBe('new-refresh');
 
     const call = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -102,8 +101,7 @@ describe('GrimmoryClient', () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: () =>
-        Promise.resolve([{ id: 1, name: 'My Library' }]),
+      json: () => Promise.resolve([{ id: 1, name: 'My Library' }]),
       text: () => Promise.resolve(''),
     });
 
@@ -120,8 +118,7 @@ describe('GrimmoryClient', () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: () =>
-        Promise.resolve([{ id: 42, title: 'Test Book' }]),
+      json: () => Promise.resolve([{ id: 42, title: 'Test Book' }]),
       text: () => Promise.resolve(''),
     });
 
@@ -137,8 +134,7 @@ describe('GrimmoryClient', () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       status: 200,
-      json: () =>
-        Promise.resolve([{ id: 1, reviewerName: 'Alice', rating: 4.5 }]),
+      json: () => Promise.resolve([{ id: 1, reviewerName: 'Alice', rating: 4.5 }]),
       text: () => Promise.resolve(''),
     });
 
@@ -190,12 +186,12 @@ describe('GrimmoryClient', () => {
       ok: true,
       status: 200,
       json: () =>
-        Promise.resolve({ token: 'refreshed-jwt', refreshToken: 'new-refresh-token' }),
+        Promise.resolve({ accessToken: 'refreshed-jwt', refreshToken: 'new-refresh-token' }),
       text: () => Promise.resolve(''),
     });
 
     const result = await client.refreshToken('old-refresh');
-    expect(result.token).toBe('refreshed-jwt');
+    expect(result.accessToken).toBe('refreshed-jwt');
 
     const call = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(call[0]).toContain('/api/v1/auth/refresh');
@@ -211,5 +207,63 @@ describe('GrimmoryClient', () => {
     const c = new GrimmoryClient(serverWithSlash);
     const url = c.getThumbnailUrl(1);
     expect(url).not.toContain('//api');
+  });
+
+  test('request handles 204 No Content without throwing', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 204,
+      headers: { get: () => null },
+      json: () => Promise.reject(new SyntaxError('Unexpected end of JSON input')),
+      text: () => Promise.resolve(''),
+    });
+
+    // updateReadingProgress returns 204 from POST /api/v1/books/progress
+    await expect(
+      client.updateReadingProgress(1, 2, 'cfi', '/chapter1.html', 0.5),
+    ).resolves.toBeUndefined();
+
+    const call = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(call[0]).toContain('/api/v1/books/progress');
+    expect(call[1]?.method).toBe('POST');
+    const body = JSON.parse(call[1]?.body as string);
+    expect(body.bookId).toBe(1);
+    expect(body.fileProgress.bookFileId).toBe(2);
+    expect(body.fileProgress.progressPercent).toBe(0.5);
+  });
+
+  test('checkReachable returns true on any HTTP response', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({}),
+      text: () => Promise.resolve(''),
+    });
+
+    const reachable = await client.checkReachable();
+    expect(reachable).toBe(true);
+
+    const call = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(call[0]).toContain('/api/v1/healthcheck');
+  });
+
+  test('checkReachable returns false on network error', async () => {
+    fetchMock.mockRejectedValueOnce(new Error('Network error'));
+
+    const reachable = await client.checkReachable();
+    expect(reachable).toBe(false);
+  });
+
+  test('getBookReviews handles 204 No Content (no reviews)', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 204,
+      headers: { get: () => null },
+      json: () => Promise.reject(new SyntaxError('Unexpected end of JSON input')),
+      text: () => Promise.resolve(''),
+    });
+
+    const reviews = await client.getBookReviews(99);
+    expect(reviews).toBeUndefined();
   });
 });

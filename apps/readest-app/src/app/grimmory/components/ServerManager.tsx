@@ -21,14 +21,16 @@ const EMPTY_NEW_SERVER = {
   password: '',
 };
 
-export function GrimmoryServerManager({ onOpenServer }: { onOpenServer?: (server: GrimmoryServer) => void }) {
+export function GrimmoryServerManager({
+  onOpenServer,
+}: {
+  onOpenServer?: (server: GrimmoryServer) => void;
+}) {
   const _ = useTranslation();
   const router = useRouter();
   const { envConfig } = useEnv();
   const { settings } = useSettingsStore();
-  const [servers, setServers] = useState<GrimmoryServer[]>(
-    () => settings.grimmory?.servers ?? [],
-  );
+  const [servers, setServers] = useState<GrimmoryServer[]>(() => settings.grimmory?.servers ?? []);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newServer, setNewServer] = useState(EMPTY_NEW_SERVER);
   const [showPassword, setShowPassword] = useState(false);
@@ -73,7 +75,12 @@ export function GrimmoryServerManager({ onOpenServer }: { onOpenServer?: (server
 
       // Verify server is reachable
       try {
-        await client.getVersion();
+        const reachable = await client.checkReachable();
+        if (!reachable) {
+          setUrlError(_('Could not reach the Grimmory server. Please check the URL.'));
+          setIsConnecting(false);
+          return;
+        }
       } catch {
         setUrlError(_('Could not reach the Grimmory server. Please check the URL.'));
         setIsConnecting(false);
@@ -86,7 +93,7 @@ export function GrimmoryServerManager({ onOpenServer }: { onOpenServer?: (server
       if (newServer.username && newServer.password) {
         try {
           const loginResp = await client.login(newServer.username, newServer.password);
-          token = loginResp.token;
+          token = loginResp.accessToken;
           refreshToken = loginResp.refreshToken;
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);

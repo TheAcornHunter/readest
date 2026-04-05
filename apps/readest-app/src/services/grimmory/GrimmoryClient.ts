@@ -8,6 +8,7 @@ import type {
   GrimmoryLibrary,
   GrimmoryBook,
   GrimmoryBookReview,
+  GrimmoryReadProgressRequest,
 } from '@/types/grimmory';
 
 const GRIMMORY_PROXY_URL = `${getAPIBaseUrl()}/grimmory/proxy`;
@@ -89,7 +90,49 @@ export class GrimmoryClient {
       throw new Error(errorMsg);
     }
 
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
     return response.json() as Promise<T>;
+  }
+
+  /**
+   * Check if the server is reachable by hitting the healthcheck endpoint.
+   * Returns true if ANY HTTP response is received (even 4xx/5xx), meaning the
+   * server is up. Returns false only if a network-level error occurs.
+   */
+  async checkReachable(): Promise<boolean> {
+    const endpoint = '/api/v1/healthcheck';
+    const url = `${this.serverUrl}${endpoint}`;
+
+    try {
+      if (!this.needsProxy()) {
+        const fetchFn = isTauriAppPlatform() ? tauriFetch : window.fetch;
+        await fetchFn(url, {
+          method: 'GET',
+          danger: {
+            acceptInvalidCerts: true,
+            acceptInvalidHostnames: true,
+          },
+        });
+      } else {
+        await fetch(GRIMMORY_PROXY_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            serverUrl: this.serverUrl,
+            endpoint,
+            method: 'GET',
+            headers: {},
+            body: null,
+          }),
+        });
+      }
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -154,6 +197,67 @@ export class GrimmoryClient {
    */
   async getBookReviews(bookId: number): Promise<GrimmoryBookReview[]> {
     return this.request<GrimmoryBookReview[]>(`/api/v1/reviews/book/${bookId}`);
+  }
+
+  /**
+   * Update reading progress for a book
+   */
+  async updateReadingProgress(
+    bookId: number,
+    fileId: number,
+    positionData: string,
+    positionHref: string,
+    progressPercent: number,
+  ): Promise<void> {
+    const payload: GrimmoryReadProgressRequest = {
+      bookId,
+      fileProgress: {
+        bookFileId: fileId,
+        positionData,
+        positionHref,
+        progressPercent,
+      },
+    };
+    await this.request<void>('/api/v1/books/progress', {
+      method: 'POST',
+      body: payload,
+    });
+  }
+
+  /**
+   * Download a book file and return its content as a Blob.
+   */
+  async downloadBookFile(bookId: number): Promise<Blob> {
+    const endpoint = `/api/v1/books/${bookId}/download`;
+
+    const headers: Record<string, string> = {};
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    if (!this.needsProxy()) {
+      const fetchFn = isTauriAppPlatform() ? tauriFetch : window.fetch;
+      const response = await fetchFn(`${this.serverUrl}${endpoint}`, {
+        method: 'GET',
+        headers,
+        danger: {
+          acceptInvalidCerts: true,
+          acceptInvalidHostnames: true,
+        },
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.blob();
+    }
+
+    const params = new URLSearchParams({
+      serverUrl: this.serverUrl,
+      endpoint,
+      method: 'GET',
+      auth: this.token ? `Bearer ${this.token}` : '',
+    });
+    const response = await fetch(`${GRIMMORY_PROXY_URL}?${params.toString()}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response.blob();
   }
 
   /**

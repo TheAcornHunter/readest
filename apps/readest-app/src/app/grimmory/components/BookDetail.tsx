@@ -1,12 +1,27 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { IoStar, IoStarOutline, IoStarHalf } from 'react-icons/io5';
+import {
+  IoStar,
+  IoStarOutline,
+  IoStarHalf,
+  IoCloudDownloadOutline,
+  IoCheckmarkCircle,
+} from 'react-icons/io5';
 import { MdArrowBack } from 'react-icons/md';
+import { useEnv } from '@/context/EnvContext';
+import { useSettingsStore } from '@/store/settingsStore';
+import { useLibraryStore } from '@/store/libraryStore';
 import { useTranslation } from '@/hooks/useTranslation';
+import { saveSysSettings } from '@/helpers/settings';
 import { GrimmoryClient } from '@/services/grimmory/GrimmoryClient';
 import { GrimmoryImage } from './GrimmoryImage';
-import type { GrimmoryBook, GrimmoryBookReview, GrimmoryServer } from '@/types/grimmory';
+import type {
+  GrimmoryBook,
+  GrimmoryBookLink,
+  GrimmoryBookReview,
+  GrimmoryServer,
+} from '@/types/grimmory';
 
 interface BookDetailProps {
   server: GrimmoryServer;
@@ -26,11 +41,11 @@ function StarRating({ rating, max = 5 }: { rating: number; max?: number }) {
         const filled = i < Math.floor(normalized);
         const half = !filled && i < Math.ceil(normalized) && normalized % 1 >= HALF_STAR_THRESHOLD;
         return filled ? (
-          <IoStar key={i} className='text-yellow-400 h-4 w-4' />
+          <IoStar key={i} className='h-4 w-4 text-yellow-400' />
         ) : half ? (
-          <IoStarHalf key={i} className='text-yellow-400 h-4 w-4' />
+          <IoStarHalf key={i} className='h-4 w-4 text-yellow-400' />
         ) : (
-          <IoStarOutline key={i} className='text-yellow-400 h-4 w-4' />
+          <IoStarOutline key={i} className='h-4 w-4 text-yellow-400' />
         );
       })}
       <span className='text-base-content/60 ml-1 text-xs'>{rating.toFixed(1)}</span>
@@ -44,7 +59,7 @@ function ReviewCard({ review }: { review: GrimmoryBookReview }) {
     <div className='bg-base-200 rounded-lg p-4'>
       <div className='mb-2 flex items-start justify-between gap-2'>
         <div>
-          <p className='font-medium text-sm'>{review.reviewerName || _('Anonymous')}</p>
+          <p className='text-sm font-medium'>{review.reviewerName || _('Anonymous')}</p>
           {review.metadataProvider && (
             <p className='text-base-content/50 text-xs'>{review.metadataProvider}</p>
           )}
@@ -64,20 +79,24 @@ function ReviewCard({ review }: { review: GrimmoryBookReview }) {
       {review.body && (
         <p className='text-base-content/80 line-clamp-4 text-sm leading-relaxed'>{review.body}</p>
       )}
-      {review.spoiler && (
-        <span className='badge badge-warning badge-xs mt-2'>{_('Spoiler')}</span>
-      )}
+      {review.spoiler && <span className='badge badge-warning badge-xs mt-2'>{_('Spoiler')}</span>}
     </div>
   );
 }
 
 export function BookDetail({ server, libraryId, bookId, onBack }: BookDetailProps) {
   const _ = useTranslation();
+  const { envConfig, appService } = useEnv();
+  const { settings } = useSettingsStore();
+  const { library } = useLibraryStore();
   const [book, setBook] = useState<GrimmoryBook | null>(null);
   const [reviews, setReviews] = useState<GrimmoryBookReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [coverError, setCoverError] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [isLinked, setIsLinked] = useState(false);
 
   useEffect(() => {
     const fetchBook = async () => {
@@ -101,6 +120,69 @@ export function BookDetail({ server, libraryId, bookId, onBack }: BookDetailProp
     fetchBook();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [server, libraryId, bookId]);
+
+  useEffect(() => {
+    const links = settings.grimmory?.bookLinks ?? [];
+    const linked = links.some((l) => l.serverId === server.id && l.bookId === bookId);
+    setIsLinked(linked);
+  }, [settings.grimmory?.bookLinks, server.id, bookId]);
+
+  const handleDownloadToLibrary = async () => {
+    if (!appService || !book) return;
+    const primaryFile = book.primaryFile;
+    if (!primaryFile) {
+      setDownloadError(_('No file available for download.'));
+      return;
+    }
+
+    setIsDownloading(true);
+    setDownloadError(null);
+
+    try {
+      const client = new GrimmoryClient(server);
+      const blob = await client.downloadBookFile(bookId);
+
+      const mimeToExt: Record<string, string> = {
+        'application/epub+zip': 'epub',
+        'application/pdf': 'pdf',
+        'application/x-mobipocket-ebook': 'mobi',
+        'application/vnd.amazon.ebook': 'azw',
+        'application/x-cbz': 'cbz',
+      };
+      const extFromMime = blob.type ? (mimeToExt[blob.type] ?? 'epub') : 'epub';
+      const ext = primaryFile.extension ?? extFromMime;
+      const fileName = primaryFile.fileName ?? `book-${bookId}.${ext}`;
+      const file = new File([blob], fileName, { type: blob.type || 'application/epub+zip' });
+
+      const imported = await appService.importBook(file, library);
+      if (!imported) {
+        setDownloadError(_('Failed to import book.'));
+        return;
+      }
+
+      const newLink: GrimmoryBookLink = {
+        bookHash: imported.hash,
+        serverId: server.id,
+        bookId,
+        fileId: primaryFile.id,
+      };
+      const existingLinks = settings.grimmory?.bookLinks ?? [];
+      const updatedLinks = existingLinks.filter(
+        (l) => !(l.serverId === server.id && l.bookId === bookId),
+      );
+      updatedLinks.push(newLink);
+      await saveSysSettings(envConfig, 'grimmory', {
+        ...settings.grimmory,
+        bookLinks: updatedLinks,
+      });
+      setIsLinked(true);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setDownloadError(msg || _('Download failed.'));
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const client = new GrimmoryClient(server);
   const coverUrl = client.getCoverUrl(bookId);
@@ -143,7 +225,7 @@ export function BookDetail({ server, libraryId, bookId, onBack }: BookDetailProp
 
   return (
     <div className='h-full overflow-y-auto'>
-      <div className='sticky top-0 z-10 bg-base-100/90 px-4 py-2 backdrop-blur-sm'>
+      <div className='bg-base-100/90 sticky top-0 z-10 px-4 py-2 backdrop-blur-sm'>
         <button onClick={onBack} className='btn btn-ghost btn-sm'>
           <MdArrowBack className='h-4 w-4' />
           {_('Back')}
@@ -175,9 +257,7 @@ export function BookDetail({ server, libraryId, bookId, onBack }: BookDetailProp
               <p className='text-base-content/70 text-sm italic'>{meta.subtitle}</p>
             )}
             {meta?.authors && meta.authors.length > 0 && (
-              <p className='text-base-content/80 mt-1 text-sm'>
-                {meta.authors.join(', ')}
-              </p>
+              <p className='text-base-content/80 mt-1 text-sm'>{meta.authors.join(', ')}</p>
             )}
             {meta?.seriesName && (
               <p className='text-base-content/60 text-xs'>
@@ -207,6 +287,32 @@ export function BookDetail({ server, libraryId, bookId, onBack }: BookDetailProp
                 </div>
               )}
             </div>
+
+            {/* Download to Library */}
+            {primaryFile && (
+              <div className='mt-3'>
+                {isLinked ? (
+                  <div className='text-success flex items-center gap-1 text-xs'>
+                    <IoCheckmarkCircle className='h-4 w-4' />
+                    {_('In your library')}
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleDownloadToLibrary}
+                    disabled={isDownloading}
+                    className='btn btn-primary btn-sm'
+                  >
+                    {isDownloading ? (
+                      <span className='loading loading-spinner loading-xs' />
+                    ) : (
+                      <IoCloudDownloadOutline className='h-4 w-4' />
+                    )}
+                    {isDownloading ? _('Downloading…') : _('Download to Library')}
+                  </button>
+                )}
+                {downloadError && <p className='text-error mt-1 text-xs'>{downloadError}</p>}
+              </div>
+            )}
           </div>
         </div>
 
@@ -247,7 +353,9 @@ export function BookDetail({ server, libraryId, bookId, onBack }: BookDetailProp
                   key={file.id}
                   className='bg-base-200 flex items-center justify-between rounded px-3 py-2 text-xs'
                 >
-                  <span className='font-mono'>{file.extension?.toUpperCase() || file.bookType || '?'}</span>
+                  <span className='font-mono'>
+                    {file.extension?.toUpperCase() || file.bookType || '?'}
+                  </span>
                   {file.fileName && (
                     <span className='text-base-content/60 mx-2 flex-1 truncate'>
                       {file.fileName}
