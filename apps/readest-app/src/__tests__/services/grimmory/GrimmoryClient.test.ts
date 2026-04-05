@@ -208,4 +208,62 @@ describe('GrimmoryClient', () => {
     const url = c.getThumbnailUrl(1);
     expect(url).not.toContain('//api');
   });
+
+  test('request handles 204 No Content without throwing', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 204,
+      headers: { get: () => null },
+      json: () => Promise.reject(new SyntaxError('Unexpected end of JSON input')),
+      text: () => Promise.resolve(''),
+    });
+
+    // updateReadingProgress returns 204 from POST /api/v1/books/progress
+    await expect(
+      client.updateReadingProgress(1, 2, 'cfi', '/chapter1.html', 0.5),
+    ).resolves.toBeUndefined();
+
+    const call = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(call[0]).toContain('/api/v1/books/progress');
+    expect(call[1]?.method).toBe('POST');
+    const body = JSON.parse(call[1]?.body as string);
+    expect(body.bookId).toBe(1);
+    expect(body.fileProgress.bookFileId).toBe(2);
+    expect(body.fileProgress.progressPercent).toBe(0.5);
+  });
+
+  test('checkReachable returns true on any HTTP response', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({}),
+      text: () => Promise.resolve(''),
+    });
+
+    const reachable = await client.checkReachable();
+    expect(reachable).toBe(true);
+
+    const call = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(call[0]).toContain('/api/v1/healthcheck');
+  });
+
+  test('checkReachable returns false on network error', async () => {
+    fetchMock.mockRejectedValueOnce(new Error('Network error'));
+
+    const reachable = await client.checkReachable();
+    expect(reachable).toBe(false);
+  });
+
+  test('getBookReviews handles 204 No Content (no reviews)', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 204,
+      headers: { get: () => null },
+      json: () => Promise.reject(new SyntaxError('Unexpected end of JSON input')),
+      text: () => Promise.resolve(''),
+    });
+
+    const reviews = await client.getBookReviews(99);
+    expect(reviews).toBeUndefined();
+  });
 });
