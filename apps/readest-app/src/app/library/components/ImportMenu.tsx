@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import { MdRssFeed } from 'react-icons/md';
-import { IoFileTray } from 'react-icons/io5';
+import { IoFileTray, IoBook } from 'react-icons/io5';
 import { useEnv } from '@/context/EnvContext';
 import { useTranslation } from '@/hooks/useTranslation';
 import MenuItem from '@/components/MenuItem';
@@ -11,6 +11,7 @@ interface ImportMenuProps {
   onImportBooksFromFiles: () => void;
   onImportBooksFromDirectory?: () => void;
   onOpenCatalogManager: () => void;
+  onOpenGrimmory?: () => void;
 }
 
 const ImportMenu: React.FC<ImportMenuProps> = ({
@@ -18,6 +19,7 @@ const ImportMenu: React.FC<ImportMenuProps> = ({
   onImportBooksFromFiles,
   onImportBooksFromDirectory,
   onOpenCatalogManager,
+  onOpenGrimmory,
 }) => {
   const _ = useTranslation();
   const { appService } = useEnv();
@@ -34,6 +36,11 @@ const ImportMenu: React.FC<ImportMenuProps> = ({
 
   const handleOpenCatalogManager = () => {
     onOpenCatalogManager();
+    setIsDropdownOpen?.(false);
+  };
+
+  const handleOpenGrimmory = () => {
+    onOpenGrimmory?.();
     setIsDropdownOpen?.(false);
   };
 
@@ -58,6 +65,11 @@ const ImportMenu: React.FC<ImportMenuProps> = ({
         label={appService?.isOnlineCatalogsAccessible ? _('Online Library') : _('OPDS Catalogs')}
         Icon={<MdRssFeed className='h-5 w-5' />}
         onClick={handleOpenCatalogManager}
+      />
+      <MenuItem
+        label={_('Grimmory')}
+        Icon={<IoBook className='h-5 w-5' />}
+        onClick={handleOpenGrimmory}
       />
     </Menu>
   );
