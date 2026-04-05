@@ -7,8 +7,26 @@ export interface GrimmoryServer {
   refreshToken?: string;
 }
 
+export interface GrimmoryBookLink {
+  bookHash: string;
+  serverId: string;
+  bookId: number;
+  fileId: number;
+}
+
 export interface GrimmorySettings {
   servers: GrimmoryServer[];
+  bookLinks?: GrimmoryBookLink[];
+}
+
+export interface GrimmoryReadProgressRequest {
+  bookId: number;
+  fileProgress: {
+    bookFileId: number;
+    positionData: string;
+    positionHref: string;
+    progressPercent: number;
+  };
 }
 
 export interface GrimmoryLoginResponse {
