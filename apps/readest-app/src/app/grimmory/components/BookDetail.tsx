@@ -141,7 +141,17 @@ export function BookDetail({ server, libraryId, bookId, onBack }: BookDetailProp
     try {
       const client = new GrimmoryClient(server);
       const blob = await client.downloadBookFile(bookId);
-      const fileName = primaryFile.fileName ?? `book-${bookId}.${primaryFile.extension ?? 'epub'}`;
+
+      const mimeToExt: Record<string, string> = {
+        'application/epub+zip': 'epub',
+        'application/pdf': 'pdf',
+        'application/x-mobipocket-ebook': 'mobi',
+        'application/vnd.amazon.ebook': 'azw',
+        'application/x-cbz': 'cbz',
+      };
+      const extFromMime = blob.type ? (mimeToExt[blob.type] ?? 'epub') : 'epub';
+      const ext = primaryFile.extension ?? extFromMime;
+      const fileName = primaryFile.fileName ?? `book-${bookId}.${ext}`;
       const file = new File([blob], fileName, { type: blob.type || 'application/epub+zip' });
 
       const imported = await appService.importBook(file, library);

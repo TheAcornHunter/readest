@@ -6,26 +6,26 @@ import { GrimmoryClient } from '@/services/grimmory/GrimmoryClient';
 import { debounce } from '@/utils/debounce';
 
 export const useGrimmorySync = (bookKey: string) => {
-  const { settings } = useSettingsStore();
-  const { getProgress, getView } = useReaderStore();
-  const { getBookData } = useBookDataStore();
+  const { getProgress } = useReaderStore();
 
   const progress = getProgress(bookKey);
 
   const getLink = useCallback(() => {
+    const { settings: currentSettings } = useSettingsStore.getState();
     const bookHash = bookKey.split('-')[0];
     if (!bookHash) return null;
-    const links = settings.grimmory?.bookLinks ?? [];
+    const links = currentSettings.grimmory?.bookLinks ?? [];
     return links.find((l) => l.bookHash === bookHash) ?? null;
-  }, [bookKey, settings.grimmory?.bookLinks]);
+  }, [bookKey]);
 
   const getClient = useCallback(() => {
     const link = getLink();
     if (!link) return null;
-    const server = (settings.grimmory?.servers ?? []).find((s) => s.id === link.serverId);
+    const { settings: currentSettings } = useSettingsStore.getState();
+    const server = (currentSettings.grimmory?.servers ?? []).find((s) => s.id === link.serverId);
     if (!server) return null;
     return new GrimmoryClient(server);
-  }, [getLink, settings.grimmory?.servers]);
+  }, [getLink]);
 
   const pushProgress = useMemo(
     () =>
@@ -34,7 +34,10 @@ export const useGrimmorySync = (bookKey: string) => {
         const client = getClient();
         if (!link || !client) return;
 
-        const currentProgress = getProgress(bookKey);
+        const { getProgress: getCurrentProgress, getView } = useReaderStore.getState();
+        const { getBookData } = useBookDataStore.getState();
+
+        const currentProgress = getCurrentProgress(bookKey);
         if (!currentProgress?.location) return;
 
         const view = getView(bookKey);
