@@ -1,5 +1,6 @@
 'use client';
 
+import DOMPurify from 'dompurify';
 import { useEffect, useState } from 'react';
 import { MdArrowBack } from 'react-icons/md';
 import { IoBook } from 'react-icons/io5';
@@ -87,7 +88,11 @@ export function LibraryList({ server, onBack, onSelectLibrary }: LibraryListProp
                     {library.iconType === 'CUSTOM_SVG' && library.icon ? (
                       <span
                         className='flex h-8 w-8 items-center justify-center'
-                        dangerouslySetInnerHTML={{ __html: library.icon }}
+                        dangerouslySetInnerHTML={{
+                          __html: DOMPurify.sanitize(library.icon, {
+                            USE_PROFILES: { svg: true, svgFilters: true },
+                          }),
+                        }}
                       />
                     ) : (
                       <span className='text-2xl'>
