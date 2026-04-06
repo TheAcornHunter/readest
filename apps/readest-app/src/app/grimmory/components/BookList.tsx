@@ -49,7 +49,7 @@ function BookCard({
             <GrimmoryImage
               src={thumbnailUrl}
               authHeader={authHeader}
-              alt={book.title || _('Book cover')}
+              alt={book.metadata?.title || book.title || _('Book cover')}
               className='h-20 w-14 rounded object-cover shadow'
               onError={() => setCoverError(true)}
             />
@@ -62,7 +62,7 @@ function BookCard({
 
         <div className='min-w-0 flex-1'>
           <h3 className='line-clamp-2 text-sm font-semibold leading-snug'>
-            {book.title || _('Untitled')}
+            {book.metadata?.title || book.title || _('Untitled')}
           </h3>
           {meta?.authors && meta.authors.length > 0 && (
             <p className='text-base-content/70 line-clamp-1 text-xs'>{meta.authors.join(', ')}</p>
@@ -134,7 +134,7 @@ export function BookList({ server, libraryId, libraryName, onBack, onSelectBook 
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return (
-      book.title?.toLowerCase().includes(q) ||
+      (book.metadata?.title || book.title)?.toLowerCase().includes(q) ||
       book.metadata?.authors?.some((a) => a.toLowerCase().includes(q)) ||
       book.metadata?.tags?.some((t) => t.toLowerCase().includes(q)) ||
       book.metadata?.categories?.some((c) => c.toLowerCase().includes(q))

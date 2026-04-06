@@ -48,6 +48,7 @@ export interface GrimmoryLibrary {
   id: number;
   name: string;
   icon?: string;
+  iconType?: string;
   paths?: GrimmoryLibraryPath[];
 }
 
