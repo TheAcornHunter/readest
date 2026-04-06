@@ -25,7 +25,7 @@ export interface GrimmoryReadProgressRequest {
     bookFileId: number;
     positionData: string;
     positionHref: string;
-    progressPercent: number;
+    progressPercent: number; // 0–100 scale
   };
 }
 
