@@ -109,7 +109,7 @@ export function BookDetail({ server, libraryId, bookId, onBack }: BookDetailProp
           client.getBookReviews(bookId).catch(() => []),
         ]);
         setBook(bookData);
-        setReviews(reviewsData);
+        setReviews(reviewsData ?? []);
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         setError(msg || _('Failed to load book details.'));
@@ -240,7 +240,7 @@ export function BookDetail({ server, libraryId, bookId, onBack }: BookDetailProp
               <GrimmoryImage
                 src={coverUrl}
                 authHeader={authHeader}
-                alt={book.title || _('Book cover')}
+                alt={book.metadata?.title || book.title || _('Book cover')}
                 className='h-36 w-24 rounded-md object-cover shadow-md'
                 onError={() => setCoverError(true)}
               />
@@ -252,7 +252,7 @@ export function BookDetail({ server, libraryId, bookId, onBack }: BookDetailProp
           </div>
 
           <div className='flex min-w-0 flex-1 flex-col'>
-            <h1 className='text-lg font-bold leading-tight'>{book.title || _('Untitled')}</h1>
+            <h1 className='text-lg font-bold leading-tight'>{book.metadata?.title || book.title || _('Untitled')}</h1>
             {meta?.subtitle && (
               <p className='text-base-content/70 text-sm italic'>{meta.subtitle}</p>
             )}

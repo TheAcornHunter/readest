@@ -46,7 +46,7 @@ export const useGrimmorySync = (bookKey: string) => {
 
         const pageInfo = currentProgress.pageinfo;
         const percentage =
-          pageInfo && pageInfo.total > 0 ? (pageInfo.current + 1) / pageInfo.total : 0;
+          pageInfo && pageInfo.total > 0 ? ((pageInfo.current + 1) / pageInfo.total) * 100 : 0;
 
         let positionHref = '';
         try {

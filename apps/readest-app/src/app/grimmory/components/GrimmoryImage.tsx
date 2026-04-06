@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
-import { isTauriAppPlatform, isWebAppPlatform } from '@/services/environment';
+import { isTauriAppPlatform } from '@/services/environment';
 
 interface GrimmoryImageProps {
-  /** Direct URL (for Tauri) or proxy URL (for web) */
+  /** Direct URL or proxy URL for the image */
   src: string;
-  /** Authorization header value (e.g. "Bearer xxx") - needed for Tauri direct requests */
+  /** Authorization header value (e.g. "Bearer xxx") */
   authHeader?: string;
   alt: string;
   className?: string;
@@ -16,8 +16,9 @@ interface GrimmoryImageProps {
 
 /**
  * Image component that handles Grimmory's authenticated image endpoints.
- * - On web: uses the proxy URL that already includes auth info
- * - On Tauri: uses tauriFetch with Authorization header and creates a blob URL
+ * Always fetches via the appropriate fetch function (tauriFetch on Tauri,
+ * window.fetch elsewhere) with the Authorization header and renders a blob URL.
+ * This correctly handles both direct server URLs (LAN) and proxy URLs.
  */
 export function GrimmoryImage({ src, authHeader, alt, className, onError }: GrimmoryImageProps) {
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
@@ -28,13 +29,6 @@ export function GrimmoryImage({ src, authHeader, alt, className, onError }: Grim
     let blobUrl: string | null = null;
 
     const load = async () => {
-      // Web mode: the proxy URL already handles auth, use directly
-      if (isWebAppPlatform()) {
-        setObjectUrl(src);
-        return;
-      }
-
-      // Tauri mode: fetch with auth header
       if (!src) return;
 
       try {

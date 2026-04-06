@@ -1,5 +1,6 @@
 'use client';
 
+import DOMPurify from 'dompurify';
 import { useEffect, useState } from 'react';
 import { MdArrowBack } from 'react-icons/md';
 import { IoBook } from 'react-icons/io5';
@@ -84,7 +85,20 @@ export function LibraryList({ server, onBack, onSelectLibrary }: LibraryListProp
               >
                 <div className='card-body p-4'>
                   <div className='flex items-center gap-3'>
-                    <span className='text-2xl'>{library.icon || '📚'}</span>
+                    {library.iconType === 'CUSTOM_SVG' && library.icon ? (
+                      <span
+                        className='flex h-8 w-8 items-center justify-center'
+                        dangerouslySetInnerHTML={{
+                          __html: DOMPurify.sanitize(library.icon, {
+                            USE_PROFILES: { svg: true, svgFilters: true },
+                          }),
+                        }}
+                      />
+                    ) : (
+                      <span className='text-2xl'>
+                        {library.iconType === 'PRIME_NG' || !library.icon ? '📚' : library.icon}
+                      </span>
+                    )}
                     <div className='min-w-0'>
                       <h3 className='card-title line-clamp-1 text-sm'>{library.name}</h3>
                       {library.paths && library.paths.length > 0 && (
